@@ -1,0 +1,56 @@
+name: Build iOS IPA
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Backend tests
+        run: python3 tests/test_backend.py
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Fetch dependencies
+        run: bash scripts/fetch_deps.sh
+
+      - name: Stage Python code and iOS wheels
+        run: bash scripts/stage_python.sh
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project UABE.xcodeproj -scheme UABE \
+            -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            2>&1 | tee build.log | tail -n 60
+
+      - name: Package IPA
+        run: bash scripts/package_ipa.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: UABE-ipa
+          path: UABE.ipa
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-log
+          path: build.log
