@@ -1,0 +1,241 @@
+name: UABE
+options:
+  bundleIdPrefix: com.uabe
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    ARCHS: arm64
+    ONLY_ACTIVE_ARCH: NO
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+    ENABLE_BITCODE: NO
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEBUG_INFORMATION_FORMAT: dwarf
+    GCC_GENERATE_DEBUGGING_SYMBOLS: NO
+
+targets:
+  UABE:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+      - path: Staging/app
+        type: folder
+        buildPhase: resources
+      - path: Staging/app_packages
+        type: folder
+        buildPhase: resources
+    dependencies:
+      - framework: Python.xcframework
+        embed: true
+        codeSign: true
+      - target: UABET2D
+        link: false
+        embed: true
+      - target: UABEEtcpak
+        link: false
+        embed: true
+      - target: UABEAstc
+        link: false
+        embed: true
+      - target: UABEVorbis
+        link: false
+        embed: true
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: UABE
+        UILaunchScreen: {}
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: false
+        ITSAppUsesNonExemptEncryption: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Unity AssetBundle
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.data
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.uabe.ios
+        SWIFT_OBJC_BRIDGING_HEADER: App/UABE-Bridging-Header.h
+        FRAMEWORK_SEARCH_PATHS: "$(PROJECT_DIR)"
+        HEADER_SEARCH_PATHS: "$(BUILT_PRODUCTS_DIR)/Python.framework/Headers"
+        CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER: NO
+        CODE_SIGN_STYLE: Manual
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        DEPLOYMENT_POSTPROCESSING: YES
+        STRIP_INSTALLED_PRODUCT: YES
+        STRIP_STYLE: all
+        STRIP_SWIFT_SYMBOLS: YES
+    postBuildScripts:
+      - name: Process Python libraries
+        basedOnDependencyAnalysis: false
+        script: |
+          set -e
+          export EXPANDED_CODE_SIGN_IDENTITY="${EXPANDED_CODE_SIGN_IDENTITY:--}"
+          source "$PROJECT_DIR/$(cat "$PROJECT_DIR/.python_utils_path")"
+          install_python Python.xcframework app app_packages
+
+  UABET2D:
+    type: framework
+    platform: iOS
+    sources:
+      - path: native/t2d
+        headerVisibility: project
+    settings:
+      base:
+        PRODUCT_NAME: UABET2D
+        PRODUCT_BUNDLE_IDENTIFIER: com.uabe.t2d
+        GENERATE_INFOPLIST_FILE: YES
+        MACH_O_TYPE: mh_dylib
+        CLANG_CXX_LANGUAGE_STANDARD: c++17
+        CLANG_CXX_LIBRARY: libc++
+        HEADER_SEARCH_PATHS: "$(SRCROOT)/native/t2d"
+        OTHER_CPLUSPLUSFLAGS: "-fno-strict-aliasing"
+        GCC_SYMBOLS_PRIVATE_EXTERN: NO
+        GCC_INLINES_ARE_PRIVATE_EXTERN: NO
+        GCC_OPTIMIZATION_LEVEL: "3"
+        SKIP_INSTALL: YES
+        DEFINES_MODULE: NO
+
+  UABEEtcpak:
+    type: framework
+    platform: iOS
+    sources:
+      - path: native/etcpak_bridge
+        headerVisibility: project
+      - path: third_party/etcpak
+        headerVisibility: project
+        includes:
+          - ColorSpace.cpp
+          - Debug.cpp
+          - Decode.cpp
+          - Dither.cpp
+          - Error.cpp
+          - ProcessDxtc.cpp
+          - ProcessRGB.cpp
+          - System.cpp
+          - Tables.cpp
+          - TaskDispatch.cpp
+          - TextureHeader.cpp
+          - Timing.cpp
+          - bc7enc.cpp
+          - bcdec.c
+          - "*.hpp"
+          - "*.h"
+    settings:
+      base:
+        PRODUCT_NAME: UABEEtcpak
+        PRODUCT_BUNDLE_IDENTIFIER: com.uabe.etcpak
+        GENERATE_INFOPLIST_FILE: YES
+        MACH_O_TYPE: mh_dylib
+        CLANG_CXX_LANGUAGE_STANDARD: c++17
+        CLANG_CXX_LIBRARY: libc++
+        HEADER_SEARCH_PATHS: "$(SRCROOT)/third_party/etcpak $(SRCROOT)/native/etcpak_bridge"
+        GCC_SYMBOLS_PRIVATE_EXTERN: NO
+        GCC_OPTIMIZATION_LEVEL: "3"
+        SKIP_INSTALL: YES
+        DEFINES_MODULE: NO
+
+  UABEAstc:
+    type: framework
+    platform: iOS
+    sources:
+      - path: native/astc_bridge
+        headerVisibility: project
+      - path: third_party/astcenc/Source
+        headerVisibility: project
+        includes:
+          - "astcenc_*.cpp"
+          - "astcenc*.h"
+    settings:
+      base:
+        PRODUCT_NAME: UABEAstc
+        PRODUCT_BUNDLE_IDENTIFIER: com.uabe.astc
+        GENERATE_INFOPLIST_FILE: YES
+        MACH_O_TYPE: mh_dylib
+        CLANG_CXX_LANGUAGE_STANDARD: c++17
+        CLANG_CXX_LIBRARY: libc++
+        HEADER_SEARCH_PATHS: "$(SRCROOT)/third_party/astcenc/Source $(SRCROOT)/native/astc_bridge"
+        GCC_PREPROCESSOR_DEFINITIONS: "$(inherited) ASTCENC_NEON=1 ASTCENC_SSE=0 ASTCENC_AVX=0 ASTCENC_POPCNT=0 ASTCENC_F16C=0 ASTCENC_DECOMPRESS_ONLY=0"
+        GCC_SYMBOLS_PRIVATE_EXTERN: NO
+        GCC_OPTIMIZATION_LEVEL: "3"
+        SKIP_INSTALL: YES
+        DEFINES_MODULE: NO
+
+  UABEVorbis:
+    type: framework
+    platform: iOS
+    sources:
+      - path: third_party/ogg/src
+        headerVisibility: project
+        includes:
+          - bitwise.c
+          - framing.c
+          - crctable.h
+      - path: native/vorbis_bridge
+        headerVisibility: project
+      - path: third_party/vorbis/lib
+        headerVisibility: project
+        includes:
+          - vorbisfile.c
+          - mdct.c
+          - block.c
+          - window.c
+          - analysis.c
+          - synthesis.c
+          - psy.c
+          - info.c
+          - floor1.c
+          - floor0.c
+          - res0.c
+          - mapping0.c
+          - registry.c
+          - codebook.c
+          - sharedbook.c
+          - lookup.c
+          - bitrate.c
+          - envelope.c
+          - lpc.c
+          - lsp.c
+          - smallft.c
+          - "*.h"
+          - "modes/*.h"
+          - "books/**/*.h"
+    settings:
+      base:
+        PRODUCT_NAME: UABEVorbis
+        PRODUCT_BUNDLE_IDENTIFIER: com.uabe.vorbis
+        GENERATE_INFOPLIST_FILE: YES
+        MACH_O_TYPE: mh_dylib
+        HEADER_SEARCH_PATHS: "$(SRCROOT)/third_party/ogg/include $(SRCROOT)/third_party/vorbis/include $(SRCROOT)/third_party/vorbis/lib"
+        GCC_SYMBOLS_PRIVATE_EXTERN: NO
+        GCC_OPTIMIZATION_LEVEL: "3"
+        GCC_WARN_INHIBIT_ALL_WARNINGS: YES
+        SKIP_INSTALL: YES
+        DEFINES_MODULE: NO
+
+schemes:
+  UABE:
+    build:
+      targets:
+        UABE: all
+    archive:
+      config: Release

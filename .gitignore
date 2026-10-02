@@ -1,0 +1,13 @@
+Staging/
+third_party/
+Python.xcframework/
+UABE.xcodeproj/
+App/Info.plist
+.python_utils_path
+build/
+build.log
+*.ipa
+Payload/
+__pycache__/
+python/_native/
+.DS_Store
